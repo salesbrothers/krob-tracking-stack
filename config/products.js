@@ -35,4 +35,13 @@ export default {
   eduzz: {},
   hotmart: {},
   kiwify: {},
+  guru: {
+    // Imersão Clínica: Protocolos de Skincare 3a Edição
+    // 'a1a8c6b6-fbb9-4a83-8b44-22e9d71cb82b': {
+    //   name: 'Imersão Protocolos de Skincare 3a Ed',
+    //   enchargeTag: '',
+    //   manychatTagId: 0,
+    //   googleAdsConversionActionId: '',
+    // },
+  },
 };

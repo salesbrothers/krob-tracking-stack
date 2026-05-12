@@ -20,7 +20,9 @@ export async function onRequestGet(context) {
         COALESCE(SUM(value), 0) as gross,
         COUNT(*) as sales,
         COALESCE(AVG(value), 0) as aov,
-        COALESCE(MAX(currency), 'BRL') as currency
+        COALESCE(MAX(currency), 'BRL') as currency,
+        COALESCE(SUM(CASE WHEN trk = '' THEN value ELSE 0 END), 0) as ob_revenue,
+        SUM(CASE WHEN trk = '' THEN 1 ELSE 0 END) as ob_sales
       FROM purchase_log
       WHERE created_at >= ?
     `).bind(since).first();
@@ -41,6 +43,8 @@ export async function onRequestGet(context) {
       sales: Number(totals?.sales || 0),
       aov: Number(totals?.aov || 0),
       currency: totals?.currency || 'BRL',
+      ob_revenue: Number(totals?.ob_revenue || 0),
+      ob_sales: Number(totals?.ob_sales || 0),
       days,
       time_series: series.results || [],
     });

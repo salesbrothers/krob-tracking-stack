@@ -34,7 +34,8 @@ export async function onRequestGet(context) {
         utm_source, utm_medium, utm_campaign, utm_content, utm_term,
         meta_status_code, meta_response_ok, meta_response_body, meta_payload_sent,
         ga4_status_code, ga4_response_ok, ga4_response_body, ga4_payload_sent,
-        google_ads_status_code, google_ads_response_ok, google_ads_response_body, google_ads_payload_sent
+        google_ads_status_code, google_ads_response_ok, google_ads_response_body, google_ads_payload_sent,
+        CASE WHEN trk = '' THEN 1 ELSE 0 END as is_order_bump
       FROM purchase_log
       ${where}
       ORDER BY created_at DESC

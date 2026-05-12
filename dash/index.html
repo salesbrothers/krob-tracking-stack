@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tracking Dashboard</title>
+<title>Dashboard de Tracking</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
 <style>
@@ -37,6 +37,7 @@
   .row-hover:hover { background: #fafafa; }
   .fade-in { animation: fadeIn 0.35s ease-out; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .ob-badge { display: inline-block; background: var(--accent-purple); color: #fff; font-size: 0.625rem; font-weight: 700; padding: 1px 5px; border-radius: 4px; letter-spacing: 0.03em; vertical-align: middle; }
 </style>
 </head>
 <body>
@@ -49,8 +50,8 @@
       <div class="flex items-center gap-3">
         <div class="w-9 h-9 rounded-lg bg-[color:var(--text)] text-white flex items-center justify-center font-bold">T</div>
         <div>
-          <div class="font-semibold">Tracking Dashboard</div>
-          <div class="text-xs text-[color:var(--muted)]">Attribution &amp; performance for this deployment</div>
+          <div class="font-semibold">Dashboard de Tracking</div>
+          <div class="text-xs text-[color:var(--muted)]">Atribuição e performance</div>
         </div>
       </div>
       <div class="flex items-center gap-2" id="range-picker">
@@ -65,26 +66,31 @@
 
     <!-- Revenue Overview -->
     <section class="fade-in">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div class="card p-5">
-          <div class="kpi-label">Gross Revenue</div>
-          <div class="kpi-value mono accent-amber mt-1" id="kpi-revenue">—</div>
+          <div class="kpi-label">Receita Bruta</div>
+          <div class="kpi-value mono accent-amber mt-1" id="kpi-revenue">&mdash;</div>
           <div class="text-xs text-[color:var(--muted)] mt-1" id="kpi-revenue-sub">&nbsp;</div>
         </div>
         <div class="card p-5">
-          <div class="kpi-label">Sales</div>
-          <div class="kpi-value mono mt-1" id="kpi-sales">—</div>
-          <div class="text-xs text-[color:var(--muted)] mt-1">Paid transactions</div>
+          <div class="kpi-label">Vendas</div>
+          <div class="kpi-value mono mt-1" id="kpi-sales">&mdash;</div>
+          <div class="text-xs text-[color:var(--muted)] mt-1">Transações pagas</div>
         </div>
         <div class="card p-5">
-          <div class="kpi-label">Average Order</div>
-          <div class="kpi-value mono accent-blue mt-1" id="kpi-aov">—</div>
-          <div class="text-xs text-[color:var(--muted)] mt-1">Gross / sales</div>
+          <div class="kpi-label">Ticket Médio</div>
+          <div class="kpi-value mono accent-blue mt-1" id="kpi-aov">&mdash;</div>
+          <div class="text-xs text-[color:var(--muted)] mt-1">Receita / vendas</div>
+        </div>
+        <div class="card p-5">
+          <div class="kpi-label">Order Bumps</div>
+          <div class="kpi-value mono accent-purple mt-1" id="kpi-ob">&mdash;</div>
+          <div class="text-xs text-[color:var(--muted)] mt-1" id="kpi-ob-sub">&nbsp;</div>
         </div>
         <div class="card p-5">
           <div class="kpi-label">Leads</div>
-          <div class="kpi-value mono accent-green mt-1" id="kpi-leads">—</div>
-          <div class="text-xs text-[color:var(--muted)] mt-1">Non-bot, last window</div>
+          <div class="kpi-value mono accent-green mt-1" id="kpi-leads">&mdash;</div>
+          <div class="text-xs text-[color:var(--muted)] mt-1">Sem bots, período atual</div>
         </div>
       </div>
     </section>
@@ -93,8 +99,8 @@
     <section class="card p-5 fade-in">
       <div class="flex items-center justify-between mb-3">
         <div>
-          <div class="font-semibold">Revenue over time</div>
-          <div class="text-xs text-[color:var(--muted)]">Daily gross revenue and sales count</div>
+          <div class="font-semibold">Receita ao longo do tempo</div>
+          <div class="text-xs text-[color:var(--muted)]">Receita bruta diária e número de vendas</div>
         </div>
       </div>
       <div class="h-64"><canvas id="chart-revenue"></canvas></div>
@@ -103,13 +109,13 @@
     <!-- Product cards + time series -->
     <section class="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 fade-in">
       <div class="card p-5">
-        <div class="font-semibold mb-3">Products</div>
+        <div class="font-semibold mb-3">Produtos</div>
         <div id="product-cards" class="space-y-2">
-          <div class="text-sm text-[color:var(--muted)]">Loading…</div>
+          <div class="text-sm text-[color:var(--muted)]">Carregando…</div>
         </div>
       </div>
       <div class="card p-5">
-        <div class="font-semibold mb-3">Sales per product over time</div>
+        <div class="font-semibold mb-3">Vendas por produto ao longo do tempo</div>
         <div class="h-64"><canvas id="chart-products"></canvas></div>
       </div>
     </section>
@@ -118,10 +124,10 @@
     <section class="card p-5 fade-in">
       <div class="flex items-center justify-between mb-4">
         <div>
-          <div class="font-semibold">Paid traffic attribution</div>
+          <div class="font-semibold">Atribuição de tráfego pago</div>
           <div class="text-xs text-[color:var(--muted)]">
-            Sales grouped by the click identifier on the originating session.
-            Meta spend is synced from Meta Marketing API
+            Vendas agrupadas pelo identificador de clique da sessão de origem.
+            Gasto Meta sincronizado via Meta Marketing API
             <span id="attribution-sync-note" class="ml-1"></span>.
           </div>
         </div>
@@ -134,24 +140,24 @@
           </div>
           <div class="grid grid-cols-2 gap-3 mt-3 mono">
             <div>
-              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Sales</div>
-              <div class="text-xl" id="meta-sales">—</div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Vendas</div>
+              <div class="text-xl" id="meta-sales">&mdash;</div>
             </div>
             <div>
-              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Revenue</div>
-              <div class="text-xl" id="meta-revenue">—</div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Receita</div>
+              <div class="text-xl" id="meta-revenue">&mdash;</div>
             </div>
             <div>
-              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Spend</div>
-              <div class="text-xl" id="meta-spend">—</div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Gasto</div>
+              <div class="text-xl" id="meta-spend">&mdash;</div>
             </div>
             <div>
               <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">CPA</div>
-              <div class="text-xl" id="meta-cpa">—</div>
+              <div class="text-xl" id="meta-cpa">&mdash;</div>
             </div>
             <div class="col-span-2">
               <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">ROAS</div>
-              <div class="text-2xl" id="meta-roas">—</div>
+              <div class="text-2xl" id="meta-roas">&mdash;</div>
             </div>
           </div>
         </div>
@@ -162,35 +168,35 @@
           </div>
           <div class="grid grid-cols-2 gap-3 mt-3 mono">
             <div>
-              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Sales</div>
-              <div class="text-xl" id="google-sales">—</div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Vendas</div>
+              <div class="text-xl" id="google-sales">&mdash;</div>
             </div>
             <div>
-              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Revenue</div>
-              <div class="text-xl" id="google-revenue">—</div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Receita</div>
+              <div class="text-xl" id="google-revenue">&mdash;</div>
             </div>
           </div>
           <div class="text-[11px] text-[color:var(--muted)] mt-3 leading-snug">
-            Spend sync for Google Ads arrives in v1.1. Revenue above is from purchases with gclid/gbraid/wbraid captured on the session.
+            Sincronização de gasto do Google Ads disponível na v1.1. Receita acima é de compras com gclid/gbraid/wbraid capturados na sessão.
           </div>
         </div>
         <div class="border border-[color:var(--border)] rounded-lg p-4">
           <div class="flex items-center gap-2 mb-2">
             <div class="w-2 h-2 rounded-full" style="background:var(--accent-green)"></div>
-            <div class="text-sm font-semibold">Organic</div>
+            <div class="text-sm font-semibold">Orgânico</div>
           </div>
           <div class="grid grid-cols-2 gap-3 mt-3 mono">
             <div>
-              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Sales</div>
-              <div class="text-xl" id="organic-sales">—</div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Vendas</div>
+              <div class="text-xl" id="organic-sales">&mdash;</div>
             </div>
             <div>
-              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Revenue</div>
-              <div class="text-xl" id="organic-revenue">—</div>
+              <div class="text-[11px] text-[color:var(--muted)] uppercase tracking-wider">Receita</div>
+              <div class="text-xl" id="organic-revenue">&mdash;</div>
             </div>
           </div>
           <div class="text-[11px] text-[color:var(--muted)] mt-3 leading-snug">
-            No fbclid / gclid / wbraid / gbraid on the originating session.
+            Sem fbclid / gclid / wbraid / gbraid na sessão de origem.
           </div>
         </div>
       </div>
@@ -199,8 +205,8 @@
     <!-- UTM Breakdown -->
     <section class="card p-5 fade-in">
       <div class="flex items-center justify-between mb-3">
-        <div class="font-semibold">UTM breakdown</div>
-        <div class="text-xs text-[color:var(--muted)]">Grouped from purchase_log</div>
+        <div class="font-semibold">Detalhamento UTM</div>
+        <div class="text-xs text-[color:var(--muted)]">Agrupado do purchase_log</div>
       </div>
       <div class="flex gap-1 border-b border-[color:var(--border)] mb-4 -mx-5 px-5" id="utm-tabs">
         <div class="dash-tab active" data-dim="utm_source">source</div>
@@ -214,14 +220,14 @@
         <table class="w-full text-sm">
           <thead class="text-xs uppercase tracking-wider text-[color:var(--dim)] border-b border-[color:var(--border)]">
             <tr>
-              <th class="text-left py-2 pr-4">Value</th>
-              <th class="text-right py-2 pr-4">Sales</th>
-              <th class="text-right py-2 pr-4">Revenue</th>
-              <th class="text-right py-2">AOV</th>
+              <th class="text-left py-2 pr-4">Valor</th>
+              <th class="text-right py-2 pr-4">Vendas</th>
+              <th class="text-right py-2 pr-4">Receita</th>
+              <th class="text-right py-2">Ticket Médio</th>
             </tr>
           </thead>
           <tbody id="utm-tbody" class="mono">
-            <tr><td colspan="4" class="py-6 text-center text-[color:var(--muted)]">Loading…</td></tr>
+            <tr><td colspan="4" class="py-6 text-center text-[color:var(--muted)]">Carregando…</td></tr>
           </tbody>
         </table>
       </div>
@@ -231,25 +237,25 @@
     <section class="card p-5 fade-in">
       <div class="flex items-center justify-between mb-3">
         <div>
-          <div class="font-semibold">Recent leads</div>
-          <div class="text-xs text-[color:var(--muted)]">Click a row to inspect the exact payload sent to Meta / GA4 and the response</div>
+          <div class="font-semibold">Leads recentes</div>
+          <div class="text-xs text-[color:var(--muted)]">Clique em uma linha para ver o payload enviado para Meta / GA4 e a resposta</div>
         </div>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="text-xs uppercase tracking-wider text-[color:var(--dim)] border-b border-[color:var(--border)]">
             <tr>
-              <th class="text-left py-2 pr-4">When</th>
-              <th class="text-left py-2 pr-4">Email</th>
-              <th class="text-left py-2 pr-4">Source</th>
-              <th class="text-left py-2 pr-4">Campaign</th>
-              <th class="text-left py-2 pr-4">Medium</th>
+              <th class="text-left py-2 pr-4">Quando</th>
+              <th class="text-left py-2 pr-4">E-mail</th>
+              <th class="text-left py-2 pr-4">Origem</th>
+              <th class="text-left py-2 pr-4">Campanha</th>
+              <th class="text-left py-2 pr-4">Mídia</th>
               <th class="text-center py-2 pr-4">Meta</th>
               <th class="text-center py-2">GA4</th>
             </tr>
           </thead>
           <tbody id="leads-tbody">
-            <tr><td colspan="7" class="py-6 text-center text-[color:var(--muted)]">Loading…</td></tr>
+            <tr><td colspan="7" class="py-6 text-center text-[color:var(--muted)]">Carregando…</td></tr>
           </tbody>
         </table>
       </div>
@@ -259,25 +265,25 @@
     <section class="card p-5 fade-in">
       <div class="flex items-center justify-between mb-3">
         <div>
-          <div class="font-semibold">Recent purchases</div>
-          <div class="text-xs text-[color:var(--muted)]">Click a row to inspect the exact payload sent to Meta / GA4 / Google Ads and the response</div>
+          <div class="font-semibold">Compras recentes</div>
+          <div class="text-xs text-[color:var(--muted)]">Clique em uma linha para ver o payload enviado para Meta / GA4 / Google Ads e a resposta</div>
         </div>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="text-xs uppercase tracking-wider text-[color:var(--dim)] border-b border-[color:var(--border)]">
             <tr>
-              <th class="text-left py-2 pr-4">When</th>
-              <th class="text-left py-2 pr-4">Email</th>
-              <th class="text-left py-2 pr-4">Product</th>
-              <th class="text-right py-2 pr-4">Value</th>
+              <th class="text-left py-2 pr-4">Quando</th>
+              <th class="text-left py-2 pr-4">E-mail</th>
+              <th class="text-left py-2 pr-4">Produto</th>
+              <th class="text-right py-2 pr-4">Valor</th>
               <th class="text-center py-2 pr-4">Meta</th>
               <th class="text-center py-2 pr-4">GA4</th>
               <th class="text-center py-2">Google Ads</th>
             </tr>
           </thead>
           <tbody id="purchases-tbody">
-            <tr><td colspan="7" class="py-6 text-center text-[color:var(--muted)]">Loading…</td></tr>
+            <tr><td colspan="7" class="py-6 text-center text-[color:var(--muted)]">Carregando…</td></tr>
           </tbody>
         </table>
       </div>
@@ -287,38 +293,38 @@
     <section class="card p-5 fade-in">
       <div class="flex items-center justify-between mb-4">
         <div>
-          <div class="font-semibold">Tracking health</div>
+          <div class="font-semibold">Saúde do tracking</div>
           <div class="text-xs text-[color:var(--muted)]">
-            First-party capture vs pixel. Shows how many events you would have lost without server-side tracking.
+            Captura first-party vs pixel. Mostra quantos eventos você teria perdido sem o tracking server-side.
           </div>
         </div>
       </div>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mono">
         <div>
-          <div class="kpi-label">Real events</div>
-          <div class="text-2xl" id="health-real">—</div>
+          <div class="kpi-label">Eventos reais</div>
+          <div class="text-2xl" id="health-real">&mdash;</div>
         </div>
         <div>
-          <div class="kpi-label">ITP recovered</div>
-          <div class="text-2xl accent-blue" id="health-itp">—</div>
+          <div class="kpi-label">ITP recuperados</div>
+          <div class="text-2xl accent-blue" id="health-itp">&mdash;</div>
         </div>
         <div>
-          <div class="kpi-label">Adblock recovered</div>
-          <div class="text-2xl accent-green" id="health-adblock">—</div>
+          <div class="kpi-label">Adblock recuperados</div>
+          <div class="text-2xl accent-green" id="health-adblock">&mdash;</div>
         </div>
         <div>
-          <div class="kpi-label">Bots filtered</div>
-          <div class="text-2xl accent-red" id="health-bots">—</div>
+          <div class="kpi-label">Bots filtrados</div>
+          <div class="text-2xl accent-red" id="health-bots">&mdash;</div>
         </div>
       </div>
       <div class="mt-5">
-        <div class="text-xs uppercase tracking-wider text-[color:var(--dim)] mb-2">fbp source breakdown</div>
+        <div class="text-xs uppercase tracking-wider text-[color:var(--dim)] mb-2">Origem do fbp</div>
         <div class="flex flex-wrap gap-2 text-xs" id="health-fbp"></div>
       </div>
     </section>
 
     <footer class="pt-4 pb-10 text-xs text-[color:var(--muted)] text-center">
-      Tracking Stack &middot; self-hosted on Cloudflare Pages
+      Tracking Stack &middot; hospedado no Cloudflare Pages
     </footer>
   </main>
 </div>
@@ -326,13 +332,13 @@
 <!-- Auth prompt shown when no key is set -->
 <div id="auth-gate" class="min-h-screen flex items-center justify-center hidden">
   <div class="card p-6 max-w-sm w-full">
-    <div class="font-semibold mb-2">Dashboard key required</div>
+    <div class="font-semibold mb-2">Chave do dashboard necessária</div>
     <div class="text-sm text-[color:var(--dim)] mb-4">
-      Paste the <code>DASH_KEY</code> you set in Cloudflare environment variables.
+      Cole a <code>DASH_KEY</code> que você configurou nas variáveis de ambiente do Cloudflare.
     </div>
     <input id="auth-input" type="password" placeholder="DASH_KEY" class="w-full border border-[color:var(--border)] rounded-lg px-3 py-2 text-sm mb-3 font-mono">
-    <button id="auth-submit" class="w-full bg-[color:var(--text)] text-white rounded-lg py-2 text-sm font-semibold">Open dashboard</button>
-    <div id="auth-error" class="text-xs text-[color:var(--accent-red)] mt-2 hidden">Invalid key.</div>
+    <button id="auth-submit" class="w-full bg-[color:var(--text)] text-white rounded-lg py-2 text-sm font-semibold">Abrir dashboard</button>
+    <div id="auth-error" class="text-xs text-[color:var(--accent-red)] mt-2 hidden">Chave inválida.</div>
   </div>
 </div>
 
@@ -341,10 +347,10 @@
   <div class="card w-full max-w-3xl max-h-[85vh] overflow-y-auto">
     <div class="flex items-center justify-between px-5 py-3 border-b border-[color:var(--border)] sticky top-0 bg-white">
       <div>
-        <div id="modal-title" class="font-semibold">Event details</div>
+        <div id="modal-title" class="font-semibold">Detalhes do evento</div>
         <div id="modal-subtitle" class="text-xs text-[color:var(--muted)] mt-0.5"></div>
       </div>
-      <button id="modal-close" class="text-[color:var(--dim)] hover:text-[color:var(--text)] text-2xl leading-none px-2" aria-label="Close">&times;</button>
+      <button id="modal-close" class="text-[color:var(--dim)] hover:text-[color:var(--text)] text-2xl leading-none px-2" aria-label="Fechar">&times;</button>
     </div>
     <div id="modal-body" class="p-5 space-y-5"></div>
   </div>
@@ -396,17 +402,20 @@
 
   // -------- Helpers --------
   const fetchJson = path => fetch(`${path}${path.includes('?') ? '&' : '?'}key=${encodeURIComponent(key)}`).then(r => r.json());
-  const money = (n, cur = 'BRL') => new Intl.NumberFormat('en-US', { style: 'currency', currency: cur, maximumFractionDigits: 0 }).format(Number(n || 0));
-  const fmtInt = n => new Intl.NumberFormat('en-US').format(Number(n || 0));
-  const fmtDate = ts => new Date(Number(ts) * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const money = (n, cur = 'BRL') => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: cur, maximumFractionDigits: 0 }).format(Number(n || 0));
+  const fmtInt = n => new Intl.NumberFormat('pt-BR').format(Number(n || 0));
+  const fmtDate = ts => new Date(Number(ts) * 1000).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
   // -------- Data loaders --------
   async function loadRevenue(days) {
     const data = await fetchJson(`/api/revenue?days=${days}`);
     qs('#kpi-revenue').textContent = money(data.gross, data.currency);
-    qs('#kpi-revenue-sub').textContent = `${data.days} days`;
+    qs('#kpi-revenue-sub').textContent = `${data.days} dias`;
     qs('#kpi-sales').textContent = fmtInt(data.sales);
     qs('#kpi-aov').textContent = money(data.aov, data.currency);
+    // Order bump KPI
+    qs('#kpi-ob').textContent = money(data.ob_revenue || 0, data.currency);
+    qs('#kpi-ob-sub').textContent = data.ob_sales ? `${fmtInt(data.ob_sales)} vendas` : 'Nenhum';
     renderRevenueChart(data.time_series || []);
   }
 
@@ -414,14 +423,14 @@
     const data = await fetchJson(`/api/products?days=${days}`);
     const container = qs('#product-cards');
     if (!data.products || data.products.length === 0) {
-      container.innerHTML = '<div class="text-sm text-[color:var(--muted)]">No products yet.</div>';
+      container.innerHTML = '<div class="text-sm text-[color:var(--muted)]">Nenhum produto ainda.</div>';
     } else {
       container.innerHTML = data.products.map(p => `
         <div class="border border-[color:var(--border)] rounded-lg p-3">
           <div class="text-xs text-[color:var(--muted)] truncate">${escapeHtml(p.product_name || p.product_id)}</div>
           <div class="mt-1 flex items-baseline justify-between">
             <div class="mono text-lg accent-amber">${money(p.revenue, p.currency || 'BRL')}</div>
-            <div class="mono text-xs text-[color:var(--dim)]">${fmtInt(p.sales)} sales</div>
+            <div class="mono text-xs text-[color:var(--dim)]">${fmtInt(p.sales)} vendas</div>
           </div>
         </div>
       `).join('');
@@ -444,9 +453,9 @@
     const note = qs('#attribution-sync-note');
     if (data.last_synced_at) {
       const dt = new Date(data.last_synced_at * 1000);
-      note.textContent = `(last sync ${dt.toLocaleString()})`;
+      note.textContent = `(última sincronização: ${dt.toLocaleString('pt-BR')})`;
     } else {
-      note.textContent = '(sync not configured yet — see docs/ad-spend-sync.md)';
+      note.textContent = '(sincronização não configurada ainda)';
     }
   }
 
@@ -457,7 +466,7 @@
     renderUtmFilters();
     const tbody = qs('#utm-tbody');
     if (!data.rows || data.rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-[color:var(--muted)]">No purchases in this window.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-[color:var(--muted)]">Nenhuma compra neste período.</td></tr>';
       return;
     }
     tbody.innerHTML = data.rows.map(r => `
@@ -471,7 +480,7 @@
     qsa('#utm-tbody tr[data-value]').forEach(row => {
       row.addEventListener('click', () => {
         const v = row.getAttribute('data-value');
-        if (v && v !== '(not set)') {
+        if (v && v !== '(não definido)') {
           utmFilters[utmDimension] = v;
           loadUtm();
         }
@@ -501,14 +510,14 @@
     qs('#kpi-leads').textContent = fmtInt((data.leads || []).length);
     const tbody = qs('#leads-tbody');
     if (!data.leads || data.leads.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-[color:var(--muted)]">No leads in this window.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-[color:var(--muted)]">Nenhum lead neste período.</td></tr>';
       return;
     }
     tbody.innerHTML = data.leads.map((l, i) => `
       <tr class="row-hover border-b border-[color:var(--border)] cursor-pointer" data-idx="${i}">
         <td class="py-2 pr-4 text-[color:var(--dim)]">${fmtDate(l.timestamp)}</td>
         <td class="py-2 pr-4 mono">${escapeHtml(l.raw_email || '—')}</td>
-        <td class="py-2 pr-4">${escapeHtml(l.utm_source || '(direct)')}</td>
+        <td class="py-2 pr-4">${escapeHtml(l.utm_source || '(direto)')}</td>
         <td class="py-2 pr-4 text-[color:var(--dim)]">${escapeHtml(l.utm_campaign || '—')}</td>
         <td class="py-2 pr-4 text-[color:var(--dim)]">${escapeHtml(l.utm_medium || '—')}</td>
         <td class="py-2 pr-4 text-center">${l.meta_response_ok ? '<span class="accent-green">✓</span>' : '<span class="accent-red">✕</span>'}</td>
@@ -527,18 +536,18 @@
     const tbody = qs('#purchases-tbody');
     const rows = data.rows || [];
     if (rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-[color:var(--muted)]">No purchases yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-[color:var(--muted)]">Nenhuma compra ainda.</td></tr>';
       return;
     }
     tbody.innerHTML = rows.map((p, i) => `
       <tr class="row-hover border-b border-[color:var(--border)] cursor-pointer" data-idx="${i}">
         <td class="py-2 pr-4 text-[color:var(--dim)]">${fmtDate(p.created_at)}</td>
         <td class="py-2 pr-4 mono">${escapeHtml(p.raw_email || '—')}</td>
-        <td class="py-2 pr-4">${escapeHtml(p.product_name || p.product_id || '—')}</td>
+        <td class="py-2 pr-4">${p.is_order_bump ? '<span class="ob-badge">OB</span> ' : ''}${escapeHtml(p.product_name || p.product_id || '—')}</td>
         <td class="py-2 pr-4 text-right accent-amber mono">${money(p.value, p.currency || 'BRL')}</td>
-        <td class="py-2 pr-4 text-center">${p.meta_response_ok ? '<span class="accent-green">✓</span>' : '<span class="accent-red">✕</span>'}</td>
-        <td class="py-2 pr-4 text-center">${p.ga4_response_ok ? '<span class="accent-green">✓</span>' : '<span class="accent-red">✕</span>'}</td>
-        <td class="py-2 text-center">${renderGadsStatus(p)}</td>
+        <td class="py-2 pr-4 text-center">${p.is_order_bump ? '<span class="text-[color:var(--muted)]">—</span>' : (p.meta_response_ok ? '<span class="accent-green">✓</span>' : '<span class="accent-red">✕</span>')}</td>
+        <td class="py-2 pr-4 text-center">${p.is_order_bump ? '<span class="text-[color:var(--muted)]">—</span>' : (p.ga4_response_ok ? '<span class="accent-green">✓</span>' : '<span class="accent-red">✕</span>')}</td>
+        <td class="py-2 text-center">${p.is_order_bump ? '<span class="text-[color:var(--muted)]">—</span>' : renderGadsStatus(p)}</td>
       </tr>
     `).join('');
     qsa('#purchases-tbody tr[data-idx]').forEach(row => {
@@ -563,11 +572,11 @@
     const body = qs('#modal-body');
 
     if (kind === 'lead') {
-      title.textContent = 'Lead details';
-      subtitle.textContent = `${fmtDate(row.timestamp)} · ${row.raw_email || '(no email)'} · event_id ${row.event_id || '—'}`;
+      title.textContent = 'Detalhes do lead';
+      subtitle.textContent = `${fmtDate(row.timestamp)} · ${row.raw_email || '(sem e-mail)'} · event_id ${row.event_id || '—'}`;
     } else {
-      title.textContent = 'Purchase details';
-      subtitle.textContent = `${fmtDate(row.created_at)} · ${row.raw_email || '(no email)'} · ${money(row.value, row.currency || 'BRL')} · txn ${row.transaction_id || '—'}`;
+      title.textContent = row.is_order_bump ? 'Detalhes do order bump' : 'Detalhes da compra';
+      subtitle.textContent = `${fmtDate(row.created_at)} · ${row.raw_email || '(sem e-mail)'} · ${money(row.value, row.currency || 'BRL')} · txn ${row.transaction_id || '—'}`;
     }
 
     const sections = [
@@ -604,13 +613,13 @@
     const hasAnything = data.payload_sent != null || (data.response_body && data.response_body.length);
     let badge;
     if (!hasAnything) {
-      badge = '<span class="text-[color:var(--muted)]">— not fired</span>';
+      badge = '<span class="text-[color:var(--muted)]">— não disparado</span>';
     } else if (data.response_ok === 1) {
-      badge = `<span class="accent-green">✓ accepted${data.status_code ? ` (HTTP ${data.status_code})` : ''}</span>`;
+      badge = `<span class="accent-green">✓ aceito${data.status_code ? ` (HTTP ${data.status_code})` : ''}</span>`;
     } else if (typeof data.response_body === 'string' && data.response_body.startsWith('skipped:')) {
       badge = `<span class="text-[color:var(--muted)]">${escapeHtml(data.response_body)}</span>`;
     } else {
-      badge = `<span class="accent-red">✕ failed${data.status_code ? ` (HTTP ${data.status_code})` : ''}</span>`;
+      badge = `<span class="accent-red">✕ falhou${data.status_code ? ` (HTTP ${data.status_code})` : ''}</span>`;
     }
 
     return `
@@ -620,11 +629,11 @@
           <div class="text-xs mono">${badge}</div>
         </div>
         <div class="mb-2">
-          <div class="text-xs uppercase tracking-wider text-[color:var(--dim)] mb-1">Payload sent</div>
+          <div class="text-xs uppercase tracking-wider text-[color:var(--dim)] mb-1">Payload enviado</div>
           <pre class="mono text-xs bg-[color:var(--bg)] border border-[color:var(--border)] rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">${escapeHtml(formatJson(data.payload_sent) || '—')}</pre>
         </div>
         <div>
-          <div class="text-xs uppercase tracking-wider text-[color:var(--dim)] mb-1">Response body</div>
+          <div class="text-xs uppercase tracking-wider text-[color:var(--dim)] mb-1">Resposta</div>
           <pre class="mono text-xs bg-[color:var(--bg)] border border-[color:var(--border)] rounded-lg p-3 overflow-x-auto whitespace-pre-wrap">${escapeHtml(formatJson(data.response_body) || '—')}</pre>
         </div>
       </div>
@@ -659,7 +668,7 @@
       ['pixel_js',         rec.fbp_from_pixel,      'blue'],
       ['middleware_http',  rec.fbp_from_middleware, 'green'],
       ['tracker_http',     rec.fbp_from_session,    'amber'],
-      ['none',             rec.fbp_none,            'red'],
+      ['nenhum',           rec.fbp_none,            'red'],
     ].map(([label, val, color]) => `
       <span class="border border-[color:var(--border)] rounded-lg px-2 py-1">
         <span class="accent-${color} mono font-semibold">${fmtInt(val)}</span>
@@ -677,7 +686,7 @@
       data: {
         labels: series.map(r => r.date),
         datasets: [{
-          label: 'Revenue',
+          label: 'Receita',
           data: series.map(r => r.revenue),
           borderColor: 'rgb(37, 99, 235)',
           backgroundColor: 'rgba(37, 99, 235, 0.08)',
@@ -701,7 +710,6 @@
   function renderProductsChart(series) {
     const ctx = qs('#chart-products').getContext('2d');
     if (productsChart) productsChart.destroy();
-    // Group by product_name
     const byProduct = {};
     const dates = new Set();
     for (const row of series) {
@@ -766,7 +774,7 @@
     });
   });
 
-  // Modal close bindings: × button, backdrop click, Escape key.
+  // Modal close bindings
   qs('#modal-close').addEventListener('click', closeModal);
   qs('#details-modal').addEventListener('click', e => {
     if (e.target.id === 'details-modal') closeModal();

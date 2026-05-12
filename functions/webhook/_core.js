@@ -27,6 +27,10 @@
 //     productId:     string,
 //     productName:   string,
 //     items:         Array<{ productId, name, price: { value, currency } }>,
+//     city:          string,   // optional — address city (Meta CAPI ct)
+//     state:         string,   // optional — address state abbrev (Meta CAPI st)
+//     country:       string,   // optional — 2-letter ISO country (Meta CAPI country)
+//     zipCode:       string,   // optional — postal/zip code (Meta CAPI zp)
 //     platformUtm:   { utm_source, utm_medium, utm_campaign, utm_content, utm_term },
 //   }
 //
@@ -112,7 +116,7 @@ export async function processPurchase({ parsed, env, context }) {
 // HANDLER: Tracking — Meta CAPI + GA4 + Google Ads (needs checkoutData)
 // -----------------------------------------------------------------------------
 async function handleTracking({ parsed, eventId, eventTime, env }) {
-  const { email, name, phone, value, currency, transactionId, productId, productName, items, checkoutData, productConfig } = parsed;
+  const { email, name, phone, value, currency, transactionId, productId, productName, items, checkoutData, productConfig, city, state, country, zipCode } = parsed;
 
   const hashedEm = await sha256(email);
   const nameParts = splitName(name);
@@ -120,6 +124,14 @@ async function handleTracking({ parsed, eventId, eventTime, env }) {
   const hashedLn = await sha256(normalizeName(nameParts.ln));
   const hashedPh = await sha256(normalizePhone(phone, env.DEFAULT_COUNTRY_CODE));
   const hashedExternalId = await sha256(checkoutData.external_id || '');
+
+  // Address fields — Meta CAPI expects lowercase, SHA-256 hashed.
+  // ct = city, st = state (2-letter abbrev), zp = zip (digits only),
+  // country = 2-letter ISO lowercase.
+  const hashedCt = await sha256(normalizeName(city || ''));
+  const hashedSt = await sha256(normalizeName(state || ''));
+  const hashedZp = await sha256((zipCode || '').replace(/\D/g, ''));
+  const hashedCountry = await sha256(normalizeName(country || ''));
 
   // Build a single item list both Meta and GA4 consume. Adapters should
   // always ship items[], but if an adapter hits an edge case and leaves
@@ -142,7 +154,7 @@ async function handleTracking({ parsed, eventId, eventTime, env }) {
   }));
 
   const [metaResult, ga4Result, googleAdsResult] = await Promise.allSettled([
-    sendToMeta({ checkoutData, hashedEm, hashedFn, hashedLn, hashedPh, hashedExternalId, eventId, eventTime, value, currency, productName, contents, env }),
+    sendToMeta({ checkoutData, hashedEm, hashedFn, hashedLn, hashedPh, hashedExternalId, hashedCt, hashedSt, hashedZp, hashedCountry, eventId, eventTime, value, currency, productName, contents, env }),
     sendToGA4({ checkoutData, hashedEm, transactionId, value, currency, ga4Items, env }),
     sendToGoogleAds({ checkoutData, productConfig, hashedEm, transactionId, value, currency, eventTime, env }),
   ]);
@@ -448,7 +460,7 @@ async function handlePurchaseLog({ parsed, eventId, eventTime, resultMap, env })
 // -----------------------------------------------------------------------------
 // META CAPI — Purchase with full navigation data from D1
 // -----------------------------------------------------------------------------
-async function sendToMeta({ checkoutData, hashedEm, hashedFn, hashedLn, hashedPh, hashedExternalId, eventId, eventTime, value, currency, productName, contents, env }) {
+async function sendToMeta({ checkoutData, hashedEm, hashedFn, hashedLn, hashedPh, hashedExternalId, hashedCt, hashedSt, hashedZp, hashedCountry, eventId, eventTime, value, currency, productName, contents, env }) {
   if (!env.META_PIXEL_ID || !env.META_ACCESS_TOKEN) {
     return { skipped: 'missing meta env', payload: null, response: null };
   }
@@ -465,6 +477,14 @@ async function sendToMeta({ checkoutData, hashedEm, hashedFn, hashedLn, hashedPh
   if (hashedExternalId) metaUserData.external_id = [hashedExternalId];
   if (checkoutData.fbp) metaUserData.fbp = checkoutData.fbp;
   if (checkoutData.fbc) metaUserData.fbc = checkoutData.fbc;
+
+  // Address / demographic fields — Meta Advanced Matching.
+  // Each field is SHA-256 hashed after normalization (lowercase, trim).
+  // https://developers.facebook.com/docs/marketing-api/conversions-api/parameters/customer-information-parameters
+  if (hashedCt) metaUserData.ct = [hashedCt];
+  if (hashedSt) metaUserData.st = [hashedSt];
+  if (hashedZp) metaUserData.zp = [hashedZp];
+  if (hashedCountry) metaUserData.country = [hashedCountry];
 
   // Purchase custom_data per Meta spec: currency + value are required;
   // content_type + content_ids + contents + content_name + num_items are
