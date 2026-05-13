@@ -27,6 +27,7 @@
 //     productId:     string,
 //     productName:   string,
 //     items:         Array<{ productId, name, price: { value, currency } }>,
+//     isOrderBump:   boolean,  // optional — true if this is an order bump (skip CAPI, flag in D1)
 //     city:          string,   // optional — address city (Meta CAPI ct)
 //     state:         string,   // optional — address state abbrev (Meta CAPI st)
 //     country:       string,   // optional — 2-letter ISO country (Meta CAPI country)
@@ -345,7 +346,7 @@ async function handleManyChat({ parsed, env }) {
 async function handlePurchaseLog({ parsed, eventId, eventTime, resultMap, env }) {
   if (!env.DB) return;
 
-  const { trk, email, name, phone, value, currency, transactionId, productId, productName, checkoutData, platformUtm, items } = parsed;
+  const { trk, isOrderBump, email, name, phone, value, currency, transactionId, productId, productName, checkoutData, platformUtm, items } = parsed;
   const tracking = resultMap.tracking || {};
   const encharge = resultMap.encharge || {};
   const manychat = resultMap.manychat || {};
@@ -370,8 +371,9 @@ async function handlePurchaseLog({ parsed, eventId, eventTime, resultMap, env })
         product_id, product_name,
         encharge_status_code, encharge_response_ok, encharge_response_body,
         manychat_status_code, manychat_response_ok, manychat_response_body,
+        is_order_bump,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       trk || '', eventId, eventTime,
       email, name, phone,
@@ -398,6 +400,7 @@ async function handlePurchaseLog({ parsed, eventId, eventTime, resultMap, env })
       productId || '', productName || '',
       encharge.statusCode || 0, encharge.responseOk || 0, encharge.responseBody || '',
       manychat.statusCode || 0, manychat.responseOk || 0, manychat.responseBody || '',
+      isOrderBump ? 1 : 0,
       createdAt
     ).run();
 

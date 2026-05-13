@@ -21,8 +21,8 @@ export async function onRequestGet(context) {
         COUNT(*) as sales,
         COALESCE(AVG(value), 0) as aov,
         COALESCE(MAX(currency), 'BRL') as currency,
-        COALESCE(SUM(CASE WHEN trk = '' THEN value ELSE 0 END), 0) as ob_revenue,
-        SUM(CASE WHEN trk = '' THEN 1 ELSE 0 END) as ob_sales
+        COALESCE(SUM(CASE WHEN is_order_bump = 1 THEN value ELSE 0 END), 0) as ob_revenue,
+        SUM(CASE WHEN is_order_bump = 1 THEN 1 ELSE 0 END) as ob_sales
       FROM purchase_log
       WHERE created_at >= ?
     `).bind(since).first();

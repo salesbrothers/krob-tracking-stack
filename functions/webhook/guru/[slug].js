@@ -126,6 +126,7 @@ export async function onRequestPost(context) {
     const parsed = {
       platform: 'guru',
       trk,
+      isOrderBump,
       email: contact.email || '',
       name: contact.name || '',
       phone,
