@@ -80,7 +80,6 @@ export async function onRequestGet(context) {
     `).bind(since, until).all();
 
     return json({
-      days,
       leads: rows.results || [],
       summary: summary.results || [],
     });

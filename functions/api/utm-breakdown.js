@@ -67,7 +67,6 @@ export async function onRequestGet(context) {
     const rows = await env.DB.prepare(query).bind(since, until, ...filterBindings).all();
     return json({
       dimension,
-      days,
       filters: activeFilters,
       rows: rows.results || [],
     });
