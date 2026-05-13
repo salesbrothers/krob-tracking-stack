@@ -10,8 +10,13 @@
 //
 //   1. `webhook_type: "eticket"` — ticket/event products.
 //      Transaction data lives INSIDE `body.transaction.*`.
-//      Status: `body.transaction.status`.
+//      Payment status: `body.transaction.status` (approved/pending/etc.)
+//      E-ticket status: `body.status` (open/invited/assigned/checked_in/canceled)
 //      UTMs/sck: `body.transaction.source.*`.
+//      CRITICAL: Guru fires eticket webhooks on EVERY lifecycle transition.
+//      Only `body.status === 'invited'` means "payment confirmed, ticket issued".
+//      All other statuses (assigned, checked_in, etc.) are lifecycle events
+//      that must be skipped to prevent duplicate purchase records.
 //
 //   2. `webhook_type: "transaction"` — standalone products and ORDER BUMPS.
 //      Transaction data lives at the ROOT of `body.*`.
@@ -69,10 +74,30 @@ export async function onRequestPost(context) {
     const isEticket = body.webhook_type === 'eticket';
     const tx = isEticket ? (body.transaction || {}) : body;
 
+    // -----------------------------------------------------------------------
+    // E-ticket lifecycle filter.
+    //
+    // Guru fires the eticket webhook on EVERY status change in the ticket
+    // lifecycle: open → invited → assigned → checked_in (or canceled).
+    // Only "invited" means "payment confirmed, ticket issued". The others
+    // are lifecycle events (assignment, check-in) that must NOT create
+    // duplicate purchase records.
+    //
+    // body.status  = eticket status (invited/assigned/open/checked_in/canceled)
+    // tx.status    = payment status (approved/pending/canceled/refunded)
+    // -----------------------------------------------------------------------
+    if (isEticket && body.status !== 'invited') {
+      return new Response(
+        JSON.stringify({ ok: true, skipped: 'eticket lifecycle event',
+          eticket_status: body.status, webhook_type: body.webhook_type }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const status = tx.status || '';
     const transactionId = tx.id || (isEticket ? '' : body.id) || '';
 
-    // Only process approved transactions.
+    // Only process approved transactions (payment confirmed).
     if (status !== 'approved') {
       return new Response(
         JSON.stringify({ ok: true, skipped: 'not approved',

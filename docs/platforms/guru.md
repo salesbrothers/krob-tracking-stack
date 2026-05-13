@@ -92,16 +92,21 @@ Field mapping:
 
 ## Paid-sale filter
 
-- **Paid status value(s)**: `'approved'`
-- **Status field path**: `body.transaction.status`
-- **Other statuses** (acknowledged with 200, not processed): `pending`, `canceled`, `refunded`, `chargeback`, `expired`
+Two-level status check for etickets:
+
+1. **E-ticket lifecycle status** (`body.status`): `open` → `invited` → `assigned` → `checked_in` (or `canceled`). Only `invited` means "payment confirmed, ticket issued". The adapter returns 200 + skip for all other statuses.
+2. **Payment status** (`body.transaction.status`): `approved` is the only one processed. Others (`pending`, `canceled`, `refunded`, `chargeback`, `expired`) are acknowledged with 200 but not processed.
+
+For transaction webhooks (`webhook_type: "transaction"`), only the payment status check applies (`body.status === 'approved'`).
+
+**CRITICAL**: Guru fires the eticket webhook on EVERY lifecycle transition (assigned, checked_in, etc.), not just on purchase. Without the `body.status === 'invited'` filter, each ticket generates duplicate purchase records every time its status changes. This was discovered in production — an `assigned` event arrived days after the original purchase and created a ghost purchase with no attribution data.
 
 ## Known gotchas
 
-- The top-level `status` field (e.g. `"assigned"`) is the e-ticket status, NOT the payment status. Always use `transaction.status` for payment filtering.
+- **E-ticket vs payment status**: The top-level `body.status` is the e-ticket lifecycle status (invited/assigned/checked_in/etc.), NOT the payment status. The payment status lives at `body.transaction.status`. Both must be checked for etickets.
 - Phone number arrives split into `phone_local_code` (country code, e.g. "55") and `phone_number` (digits). The adapter concatenates them.
 - `payment.total` is already in reais (decimal), not centavos. No division needed (unlike Kiwify which uses cents).
-- `webhook_type` can be `"eticket"` or `"transaction"` — both carry the full transaction object. The adapter processes either when `transaction.status === 'approved'`.
+- `webhook_type` can be `"eticket"` or `"transaction"` — both carry the full transaction object, but etickets require the extra lifecycle filter.
 - UTMs are natively captured by Guru in `transaction.source.*` — this is a bonus for attribution even when the `trk` chain is missing.
 - The `infrastructure` object does NOT include `facebook_browser_id` or `ga_id` — these must be captured on the sales page before redirect.
 - **Address fields** are available inside `contact.*`: `address_city`, `address_state`, `address_country`, `address_zip_code`. The adapter extracts these and _core.js hashes them for Meta CAPI Advanced Matching (`ct`, `st`, `country`, `zp`).
