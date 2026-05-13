@@ -29,8 +29,7 @@ export async function onRequestGet(context) {
     return json({ error: `dimension must be one of ${[...ALLOWED_DIMENSIONS].join(', ')}` }, 400);
   }
 
-  const days = clampInt(url.searchParams.get('days'), 30, 1, 365);
-  const since = Math.floor(Date.now() / 1000) - days * 86400;
+  const { since, until } = parseDateRange(url);
 
   // Build cascading filters from any other utm_* query params.
   const filterClauses = [];
@@ -48,6 +47,7 @@ export async function onRequestGet(context) {
 
   const whereClause = [
     'created_at >= ?',
+    'created_at <= ?',
     ...filterClauses,
   ].join(' AND ');
 
@@ -64,7 +64,7 @@ export async function onRequestGet(context) {
   `;
 
   try {
-    const rows = await env.DB.prepare(query).bind(since, ...filterBindings).all();
+    const rows = await env.DB.prepare(query).bind(since, until, ...filterBindings).all();
     return json({
       dimension,
       days,
@@ -90,4 +90,20 @@ function clampInt(raw, fallback, min, max) {
   const n = parseInt(raw || '', 10);
   if (Number.isNaN(n)) return fallback;
   return Math.max(min, Math.min(max, n));
+}
+
+function parseDateRange(url) {
+  const sinceParam = url.searchParams.get('since');
+  const untilParam = url.searchParams.get('until');
+  if (sinceParam) {
+    return {
+      since: parseInt(sinceParam, 10),
+      until: untilParam ? parseInt(untilParam, 10) : Math.floor(Date.now() / 1000),
+    };
+  }
+  const days = clampInt(url.searchParams.get('days'), 30, 1, 365);
+  return {
+    since: Math.floor(Date.now() / 1000) - days * 86400,
+    until: Math.floor(Date.now() / 1000),
+  };
 }

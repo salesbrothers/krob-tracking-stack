@@ -16,10 +16,9 @@ export async function onRequestGet(context) {
     return json({ error: 'Unauthorized' }, 401);
   }
 
-  const days = clampInt(url.searchParams.get('days'), 30, 1, 365);
+  const { since, until } = parseDateRange(url);
   const limit = clampInt(url.searchParams.get('limit'), 100, 1, 500);
   const includeBots = url.searchParams.get('include_bots') === '1';
-  const since = Math.floor(Date.now() / 1000) - days * 86400;
 
   const botClause = includeBots ? '' : 'AND e.is_bot = 0';
 
@@ -59,10 +58,11 @@ export async function onRequestGet(context) {
       LEFT JOIN sessions s ON e.session_id = s.session_id
       WHERE e.event_name = 'Lead'
         AND e.timestamp >= ?
+        AND e.timestamp <= ?
         ${botClause}
       ORDER BY e.timestamp DESC
       LIMIT ?
-    `).bind(since, limit).all();
+    `).bind(since, until, limit).all();
 
     // Summary counts grouped by utm_source for the summary card above the table.
     const summary = await env.DB.prepare(`
@@ -73,10 +73,11 @@ export async function onRequestGet(context) {
       LEFT JOIN sessions s ON e.session_id = s.session_id
       WHERE e.event_name = 'Lead'
         AND e.timestamp >= ?
+        AND e.timestamp <= ?
         AND e.is_bot = 0
       GROUP BY utm_source
       ORDER BY count DESC
-    `).bind(since).all();
+    `).bind(since, until).all();
 
     return json({
       days,
@@ -102,4 +103,20 @@ function clampInt(raw, fallback, min, max) {
   const n = parseInt(raw || '', 10);
   if (Number.isNaN(n)) return fallback;
   return Math.max(min, Math.min(max, n));
+}
+
+function parseDateRange(url) {
+  const sinceParam = url.searchParams.get('since');
+  const untilParam = url.searchParams.get('until');
+  if (sinceParam) {
+    return {
+      since: parseInt(sinceParam, 10),
+      until: untilParam ? parseInt(untilParam, 10) : Math.floor(Date.now() / 1000),
+    };
+  }
+  const days = clampInt(url.searchParams.get('days'), 30, 1, 365);
+  return {
+    since: Math.floor(Date.now() / 1000) - days * 86400,
+    until: Math.floor(Date.now() / 1000),
+  };
 }

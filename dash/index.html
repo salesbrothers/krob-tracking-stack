@@ -54,10 +54,26 @@
           <div class="text-xs text-[color:var(--muted)]">Atribuição e performance</div>
         </div>
       </div>
-      <div class="flex items-center gap-2" id="range-picker">
+      <div class="flex items-center gap-2 flex-wrap" id="range-picker">
         <button class="range-btn" data-days="7">7d</button>
         <button class="range-btn active" data-days="30">30d</button>
         <button class="range-btn" data-days="90">90d</button>
+        <div class="relative">
+          <button class="range-btn" id="custom-range-toggle">Personalizado</button>
+          <div id="custom-range-popup" class="hidden absolute right-0 top-full mt-2 card p-4 z-20 shadow-lg" style="min-width:300px">
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label class="text-xs text-[color:var(--dim)] font-semibold block mb-1">De</label>
+                <input type="date" id="range-from" class="w-full border border-[color:var(--border)] rounded-lg px-2.5 py-1.5 text-sm">
+              </div>
+              <div>
+                <label class="text-xs text-[color:var(--dim)] font-semibold block mb-1">Até</label>
+                <input type="date" id="range-to" class="w-full border border-[color:var(--border)] rounded-lg px-2.5 py-1.5 text-sm">
+              </div>
+            </div>
+            <button id="range-apply" class="w-full bg-[color:var(--text)] text-white rounded-lg py-2 text-sm font-semibold">Aplicar</button>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -371,7 +387,7 @@
     app.classList.remove('hidden');
     authGate.classList.add('hidden');
     sessionStorage.setItem('dashKey', key);
-    await loadAll(currentDays);
+    await loadAll();
   }
 
   async function probeKey(k) {
@@ -395,22 +411,27 @@
 
   // -------- State --------
   let currentDays = 30;
+  let customRange = null; // { since: unixTs, until: unixTs } or null
   let utmDimension = 'utm_source';
   let utmFilters = {};
   let revenueChart = null;
   let productsChart = null;
 
   // -------- Helpers --------
+  function rangeQS() {
+    if (customRange) return `since=${customRange.since}&until=${customRange.until}`;
+    return `days=${currentDays}`;
+  }
   const fetchJson = path => fetch(`${path}${path.includes('?') ? '&' : '?'}key=${encodeURIComponent(key)}`).then(r => r.json());
   const money = (n, cur = 'BRL') => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: cur, maximumFractionDigits: 0 }).format(Number(n || 0));
   const fmtInt = n => new Intl.NumberFormat('pt-BR').format(Number(n || 0));
   const fmtDate = ts => new Date(Number(ts) * 1000).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
   // -------- Data loaders --------
-  async function loadRevenue(days) {
-    const data = await fetchJson(`/api/revenue?days=${days}`);
+  async function loadRevenue() {
+    const data = await fetchJson(`/api/revenue?${rangeQS()}`);
     qs('#kpi-revenue').textContent = money(data.gross, data.currency);
-    qs('#kpi-revenue-sub').textContent = `${data.days} dias`;
+    qs('#kpi-revenue-sub').textContent = customRange ? rangeLabel() : `${data.days || currentDays} dias`;
     qs('#kpi-sales').textContent = fmtInt(data.sales);
     qs('#kpi-aov').textContent = money(data.aov, data.currency);
     // Order bump KPI
@@ -419,8 +440,8 @@
     renderRevenueChart(data.time_series || []);
   }
 
-  async function loadProducts(days) {
-    const data = await fetchJson(`/api/products?days=${days}`);
+  async function loadProducts() {
+    const data = await fetchJson(`/api/products?${rangeQS()}`);
     const container = qs('#product-cards');
     if (!data.products || data.products.length === 0) {
       container.innerHTML = '<div class="text-sm text-[color:var(--muted)]">Nenhum produto ainda.</div>';
@@ -438,8 +459,8 @@
     renderProductsChart(data.time_series || []);
   }
 
-  async function loadAttribution(days) {
-    const data = await fetchJson(`/api/attribution?days=${days}`);
+  async function loadAttribution() {
+    const data = await fetchJson(`/api/attribution?${rangeQS()}`);
     qs('#meta-sales').textContent   = fmtInt(data.groups.meta.sales);
     qs('#meta-revenue').textContent = money(data.groups.meta.revenue);
     qs('#meta-spend').textContent   = data.meta_spend > 0 ? money(data.meta_spend) : '—';
@@ -460,7 +481,8 @@
   }
 
   async function loadUtm() {
-    const params = new URLSearchParams({ days: String(currentDays), dimension: utmDimension });
+    const params = new URLSearchParams(rangeQS());
+    params.set('dimension', utmDimension);
     for (const [k, v] of Object.entries(utmFilters)) params.set(k, v);
     const data = await fetchJson(`/api/utm-breakdown?${params.toString()}`);
     renderUtmFilters();
@@ -505,8 +527,8 @@
     });
   }
 
-  async function loadLeads(days) {
-    const data = await fetchJson(`/api/leads?days=${days}&limit=50`);
+  async function loadLeads() {
+    const data = await fetchJson(`/api/leads?${rangeQS()}&limit=50`);
     qs('#kpi-leads').textContent = fmtInt((data.leads || []).length);
     const tbody = qs('#leads-tbody');
     if (!data.leads || data.leads.length === 0) {
@@ -743,27 +765,81 @@
   }
 
   // -------- Load orchestration --------
-  async function loadAll(days) {
-    currentDays = days;
+  async function loadAll() {
     await Promise.all([
-      loadRevenue(days),
-      loadProducts(days),
-      loadAttribution(days),
+      loadRevenue(),
+      loadProducts(),
+      loadAttribution(),
       loadUtm(),
-      loadLeads(days),
+      loadLeads(),
       loadPurchases(),
       loadHealth(),
     ]);
   }
 
+  function rangeLabel() {
+    if (!customRange) return '';
+    const fmt = ts => new Date(ts * 1000).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    return `${fmt(customRange.since)} – ${fmt(customRange.until)}`;
+  }
+
   // -------- UI bindings --------
-  qsa('#range-picker .range-btn').forEach(btn => {
+  // Preset range buttons (7d, 30d, 90d)
+  qsa('#range-picker .range-btn[data-days]').forEach(btn => {
     btn.addEventListener('click', () => {
       qsa('#range-picker .range-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      loadAll(parseInt(btn.getAttribute('data-days'), 10));
+      customRange = null;
+      currentDays = parseInt(btn.getAttribute('data-days'), 10);
+      qs('#custom-range-popup').classList.add('hidden');
+      loadAll();
     });
   });
+
+  // Custom range toggle
+  qs('#custom-range-toggle').addEventListener('click', () => {
+    const popup = qs('#custom-range-popup');
+    popup.classList.toggle('hidden');
+    if (!popup.classList.contains('hidden')) {
+      // Default: last 30 days
+      const today = new Date();
+      const from = new Date(today);
+      from.setDate(from.getDate() - 30);
+      if (!qs('#range-from').value) qs('#range-from').value = isoDate(from);
+      if (!qs('#range-to').value)   qs('#range-to').value   = isoDate(today);
+    }
+  });
+
+  // Apply custom range
+  qs('#range-apply').addEventListener('click', () => {
+    const fromVal = qs('#range-from').value;
+    const toVal   = qs('#range-to').value;
+    if (!fromVal || !toVal) return;
+    const fromDate = new Date(fromVal + 'T00:00:00');
+    const toDate   = new Date(toVal   + 'T23:59:59');
+    customRange = {
+      since: Math.floor(fromDate.getTime() / 1000),
+      until: Math.floor(toDate.getTime()   / 1000),
+    };
+    qsa('#range-picker .range-btn').forEach(b => b.classList.remove('active'));
+    qs('#custom-range-toggle').classList.add('active');
+    qs('#custom-range-popup').classList.add('hidden');
+    loadAll();
+  });
+
+  // Close popup when clicking outside
+  document.addEventListener('click', e => {
+    const popup = qs('#custom-range-popup');
+    const toggle = qs('#custom-range-toggle');
+    if (!popup.contains(e.target) && e.target !== toggle && !popup.classList.contains('hidden')) {
+      popup.classList.add('hidden');
+    }
+  });
+
+  function isoDate(d) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
   qsa('#utm-tabs .dash-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       qsa('#utm-tabs .dash-tab').forEach(t => t.classList.remove('active'));

@@ -11,8 +11,7 @@ export async function onRequestGet(context) {
     return json({ error: 'Unauthorized' }, 401);
   }
 
-  const days = clampInt(url.searchParams.get('days'), 30, 1, 365);
-  const since = Math.floor(Date.now() / 1000) - days * 86400;
+  const { since, until } = parseDateRange(url);
 
   try {
     const totals = await env.DB.prepare(`
@@ -24,8 +23,8 @@ export async function onRequestGet(context) {
         COALESCE(SUM(CASE WHEN is_order_bump = 1 THEN value ELSE 0 END), 0) as ob_revenue,
         SUM(CASE WHEN is_order_bump = 1 THEN 1 ELSE 0 END) as ob_sales
       FROM purchase_log
-      WHERE created_at >= ?
-    `).bind(since).first();
+      WHERE created_at >= ? AND created_at <= ?
+    `).bind(since, until).first();
 
     const series = await env.DB.prepare(`
       SELECT
@@ -33,10 +32,10 @@ export async function onRequestGet(context) {
         COALESCE(SUM(value), 0) as revenue,
         COUNT(*) as sales
       FROM purchase_log
-      WHERE created_at >= ?
+      WHERE created_at >= ? AND created_at <= ?
       GROUP BY date(created_at, 'unixepoch')
       ORDER BY date ASC
-    `).bind(since).all();
+    `).bind(since, until).all();
 
     return json({
       gross: Number(totals?.gross || 0),
@@ -67,4 +66,20 @@ function clampInt(raw, fallback, min, max) {
   const n = parseInt(raw || '', 10);
   if (Number.isNaN(n)) return fallback;
   return Math.max(min, Math.min(max, n));
+}
+
+function parseDateRange(url) {
+  const sinceParam = url.searchParams.get('since');
+  const untilParam = url.searchParams.get('until');
+  if (sinceParam) {
+    return {
+      since: parseInt(sinceParam, 10),
+      until: untilParam ? parseInt(untilParam, 10) : Math.floor(Date.now() / 1000),
+    };
+  }
+  const days = clampInt(url.searchParams.get('days'), 30, 1, 365);
+  return {
+    since: Math.floor(Date.now() / 1000) - days * 86400,
+    until: Math.floor(Date.now() / 1000),
+  };
 }
