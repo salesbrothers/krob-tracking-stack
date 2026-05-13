@@ -74,7 +74,11 @@ export async function processPurchase({ parsed, env, context }) {
   // never blocks the others.
   const handlerPromises = [];
 
-  if (parsed.trk && checkoutData.trk) {
+  // Tracking (Meta CAPI + GA4 + Google Ads) fires whenever we have an
+  // email — the minimum for server-side event matching. A checkout session
+  // enriches the event (fbp, fbc, IP, UA), but is NOT a prerequisite.
+  // Order bumps are excluded to prevent inflating conversion counts.
+  if (parsed.email && !parsed.isOrderBump) {
     handlerPromises.push(
       handleTracking({ parsed: enriched, eventId, eventTime, env })
         .then(r => ({ handler: 'tracking', ...r }))
@@ -114,7 +118,9 @@ export async function processPurchase({ parsed, env, context }) {
 }
 
 // -----------------------------------------------------------------------------
-// HANDLER: Tracking — Meta CAPI + GA4 + Google Ads (needs checkoutData)
+// HANDLER: Tracking — Meta CAPI + GA4 + Google Ads
+// checkoutData enriches the event (fbp, fbc, IP, UA) but is optional.
+// At minimum, hashed email is enough for Meta server-side matching.
 // -----------------------------------------------------------------------------
 async function handleTracking({ parsed, eventId, eventTime, env }) {
   const { email, name, phone, value, currency, transactionId, productId, productName, items, checkoutData, productConfig, city, state, country, zipCode } = parsed;
